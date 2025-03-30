@@ -47,3 +47,6 @@ Este é um jogo da velha interativo desenvolvido em Python com Flask, onde você
 - JavaScript para interatividade
 - Algoritmo Minimax para a IA
 
+## [Acesse aqui](https://88152ed0-7265-4c28-b917-e6698d9ac16c-00-1dbzsbblzgvss.picard.replit.dev/)
+
+
