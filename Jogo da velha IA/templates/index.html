@@ -1,0 +1,213 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Velha</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #1e90ff;
+            color: white;
+        }
+        .tabuleiro {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 5px;
+            margin: 20px;
+        }
+        .celula {
+            width: 100px;
+            height: 100px;
+            background: white;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .celula:hover {
+            background-color: #eee;
+        }
+        .X {
+            color: red;
+        }
+        .O {
+            color: blue;
+        }
+        #novo-jogo {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #novo-jogo:hover {
+            background-color: #45a049;
+        }
+        .loading {
+            display: none;
+            margin: 20px;
+        }
+        .loading span {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            margin: 0 5px;
+            background-color: #333;
+            border-radius: 50%;
+            animation: loading 1s infinite;
+        }
+        .loading span:nth-child(2) { animation-delay: 0.2s; }
+        .loading span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes loading {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(0.5); }
+        }
+        .running-man {
+            font-size: 50px;
+            margin-top: 20px;
+            animation: run 1s infinite linear;
+        }
+        @keyframes run {
+            0% { transform: translateX(-50px); }
+            100% { transform: translateX(50px); }
+        }
+        .mensagem-game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            animation: aparecer 0.5s ease-in-out;
+            z-index: 1000;
+        }
+        .win { background-color: #4CAF50; }
+        .lose { background-color: #f44336; }
+        .draw { background-color: #ff9800; }
+        @keyframes aparecer {
+            from { opacity: 0; transform: translate(-50%, -60%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogo da Velha</h1>
+    <button id="novo-jogo">Novo Jogo</button>
+    <div class="loading">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+    <div class="tabuleiro">
+        <div class="celula" data-pos="0"></div>
+        <div class="celula" data-pos="1"></div>
+        <div class="celula" data-pos="2"></div>
+        <div class="celula" data-pos="3"></div>
+        <div class="celula" data-pos="4"></div>
+        <div class="celula" data-pos="5"></div>
+        <div class="celula" data-pos="6"></div>
+        <div class="celula" data-pos="7"></div>
+        <div class="celula" data-pos="8"></div>
+    </div>
+    <div class="running-man">🏃</div>
+
+    <script>
+        const loading = document.querySelector('.loading');
+        const celulas = document.querySelectorAll('.celula');
+        const novoJogoBtn = document.querySelector('#novo-jogo');
+
+        function mostrarLoading() {
+            loading.style.display = 'block';
+        }
+
+        function ocultarLoading() {
+            loading.style.display = 'none';
+        }
+
+        function mostrarMensagem(texto, tipo) {
+            const mensagemExistente = document.querySelector('.mensagem-game-over');
+            if (mensagemExistente) {
+                mensagemExistente.remove();
+            }
+            
+            const mensagem = document.createElement('div');
+            mensagem.className = `mensagem-game-over ${tipo}`;
+            mensagem.textContent = texto;
+            document.body.appendChild(mensagem);
+            
+            setTimeout(() => {
+                mensagem.remove();
+            }, 3000);
+        }
+
+        function atualizarTabuleiro(tabuleiro) {
+            celulas.forEach((celula, i) => {
+                celula.textContent = tabuleiro[i];
+                celula.className = `celula ${tabuleiro[i]}`;
+            });
+        }
+
+        async function novoJogo() {
+            mostrarLoading();
+            const response = await fetch('/novo_jogo', {
+                method: 'POST'
+            });
+            const data = await response.json();
+            atualizarTabuleiro(data.tabuleiro);
+            ocultarLoading();
+        }
+
+        async function fazerJogada(posicao) {
+            mostrarLoading();
+            const response = await fetch('/fazer_jogada', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ posicao })
+            });
+            const data = await response.json();
+            
+            if (data.erro) {
+                alert(data.erro);
+            } else {
+                atualizarTabuleiro(data.tabuleiro);
+                if (data.status === 'vitoria_jogador') {
+                    mostrarMensagem('GAME OVER - Parabéns! Você venceu!', 'win');
+                } else if (data.status === 'vitoria_ia') {
+                    mostrarMensagem('GAME OVER - A IA venceu!', 'lose');
+                } else if (data.status === 'empate') {
+                    mostrarMensagem('GAME OVER - Empate!', 'draw');
+                }
+            }
+            ocultarLoading();
+        }
+
+        novoJogoBtn.addEventListener('click', novoJogo);
+        celulas.forEach(celula => {
+            celula.addEventListener('click', () => {
+                const pos = parseInt(celula.dataset.pos);
+                fazerJogada(pos);
+            });
+        });
+
+        // Iniciar jogo automaticamente
+        novoJogo();
+    </script>
+</body>
+</html>
